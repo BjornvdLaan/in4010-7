@@ -14,6 +14,7 @@ import negotiator.utility.AbstractUtilitySpace;
 
 /**
  * This is your negotiation party.
+ * comment test
  */
 public class Group7 extends AbstractNegotiationParty {
 
