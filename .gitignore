@@ -1,12 +1,21 @@
-*.class
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.ear
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+.settings
+anac2013example
+bin
+boaexamplepackage/*
+DataObjects
+doc
+etc
+example
+examplepackage
+javadoc
+log
+multipartyexample
+tutorials
+agentrepository.xml
+boarepository.xml
+domainrepository.xml
+multilateraltournament.xml
+negosimulator.jar
+partyrepository.xml
+protocolrepository.xml
+test.xml
