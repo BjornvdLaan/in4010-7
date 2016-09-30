@@ -32,7 +32,6 @@ public class OpponentModel {
 		
 		//For each issue in the new bid		
 		for(Issue i : newBid.getIssues()) {	
-			System.out.println(i.getChildren());
 			if(agentsBids.size() >= 2) {
 				//UPDATE WEIGHTS
 				Bid previousBid = agentsBids.get(agentsBids.size()-2);
@@ -54,13 +53,56 @@ public class OpponentModel {
 			//Increment frequency for this value of this issue
 			int freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()).toString());
 			utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), freq + 1);
-			
-			
 		}
+		
+		normalizeAgentData(agentHash);
 		
 		System.out.println(weights.toString());
 		System.out.println(utilities.toString());
 		
+	}
+	
+	/**
+	 * Normalizes model for this agent.
+	 * @param agentHash
+	 */
+	public void normalizeAgentData(int agentHash) {
+		normalizeWeightsOfAgent(agentHash);
+		normalizeUtilitiesOfAgent(agentHash);
+	}
+	
+	public void normalizeWeightsOfAgent(int agentHash) {
+		HashMap<Issue, Float> agentWeights = weights.get(agentHash);
+		
+		float sum = (float) 0.0;
+		for(Issue i : agentWeights.keySet()) {
+			sum += agentWeights.get(i);
+		}
+		
+		for(Issue i : agentWeights.keySet()) {
+			float oldWeight = weights.get(agentHash).get(i);
+			weights.get(agentHash).put(i, oldWeight / sum);
+		}
+	}
+	
+	public void normalizeUtilitiesOfAgent(int agentHash) {
+		HashMap<Issue, HashMap<String, Integer>> agentUtils = utilities.get(agentHash);
+		
+		for(Issue i : agentUtils.keySet()) {
+			HashMap<String, Integer> issueUtils = agentUtils.get(i);
+			
+			//find the biggest value of this issue
+			int max = Integer.MIN_VALUE;
+			for(int val : issueUtils.values()) {
+				max = Integer.max(max, val);
+			}
+			
+			for(String option : issueUtils.keySet()) {
+				int oldUtil = agentUtils.get(i).get(option);
+				//NOTE: might not add up to one because of rounding differences. Maybe make it doubles?
+				utilities.get(agentHash).get(i).put(option, oldUtil / max);
+			}
+		}
 	}
 	
 	/**
