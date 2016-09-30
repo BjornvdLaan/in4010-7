@@ -1,5 +1,7 @@
 package ai2016;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import negotiator.AgentID;
@@ -14,18 +16,17 @@ import negotiator.utility.AbstractUtilitySpace;
 
 /**
  * This is your negotiation party.
- * comment test
  */
 public class Group7 extends AbstractNegotiationParty {
 
 	private Bid lastReceivedBid = null;
+	private HashMap<Integer, ArrayList<Bid>> bidList = new HashMap<>();
 
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
 			TimeLineInfo tl, long randomSeed, AgentID agentId) {
 
 		super.init(utilSpace, dl, tl, randomSeed, agentId);
-
 		System.out.println("Discount Factor is "
 				+ utilSpace.getDiscountFactor());
 		System.out.println("Reservation Value is "
@@ -47,7 +48,6 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {
-
 		// with 50% chance, counter offer
 		// if we are the first party, also offer.
 		if (lastReceivedBid == null || !validActions.contains(Accept.class)
@@ -73,12 +73,17 @@ public class Group7 extends AbstractNegotiationParty {
 		super.receiveMessage(sender, action);
 		if (action instanceof Offer) {
 			lastReceivedBid = ((Offer) action).getBid();
+			if(!bidList.containsKey(sender.hashCode())) {
+				bidList.put(sender.hashCode(), new ArrayList<Bid>());
+			}
+			bidList.get(sender.hashCode()).add(lastReceivedBid);
+			System.out.println(bidList.toString());
 		}
 	}
 
 	@Override
 	public String getDescription() {
-		return "Party group 7";
+		return "example party group N";
 	}
 
 }
