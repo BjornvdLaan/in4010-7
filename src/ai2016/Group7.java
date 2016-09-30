@@ -26,6 +26,9 @@ public class Group7 extends AbstractNegotiationParty {
 	/** Bid with the highest possible utility. */
 	private Bid maxBid;
 	
+	//Opponent model
+	private OpponentModel opponentModel;
+	
 	/** The minimum utility a bid should have to be accepted or offered. */
 	private double MINIMUM_BID_UTILITY;
 
@@ -35,6 +38,9 @@ public class Group7 extends AbstractNegotiationParty {
 		
 		//Set minimum utility
 		MINIMUM_BID_UTILITY = 0.65;//utilSpace.getReservationValueUndiscounted();
+		
+		//Initialize Opponent model
+		opponentModel = new OpponentModel();
 
 		super.init(utilSpace, dl, tl, randomSeed, agentId);
 		System.out.println("Discount Factor is "
@@ -80,12 +86,18 @@ public class Group7 extends AbstractNegotiationParty {
 	public void receiveMessage(AgentID sender, Action action) {
 		super.receiveMessage(sender, action);
 		if (action instanceof Offer) {
-			lastReceivedBid = ((Offer) action).getBid();
+			Bid receivedBid = ((Offer) action).getBid();
+			lastReceivedBid = receivedBid;
+			
+			//Save bid
 			if(!bidList.containsKey(sender.hashCode())) {
 				bidList.put(sender.hashCode(), new ArrayList<Bid>());
 			}
-			bidList.get(sender.hashCode()).add(lastReceivedBid);
-			System.out.println(bidList.toString());
+			bidList.get(sender.hashCode()).add(receivedBid);
+			
+			//Update opponent model
+			ArrayList<Bid> agentsBids = bidList.get(sender.hashCode());
+			opponentModel.update(sender.hashCode(), agentsBids);
 		}
 	}
 
