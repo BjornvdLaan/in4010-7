@@ -3,8 +3,10 @@ package ai2016;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import negotiator.AgentID;
 import negotiator.Bid;
 import negotiator.issue.Issue;
+import negotiator.issue.Objective;
 
 public class OpponentModel {
 	private HashMap<Integer, HashMap<Issue, Float>> weights;
@@ -26,29 +28,11 @@ public class OpponentModel {
 	public void update(int agentHash, ArrayList<Bid> agentsBids) {
 		Bid newBid = agentsBids.get(agentsBids.size()-1);
 		
-		//If agent has not been seen before, initialize it
-		if(!weights.containsKey(agentHash) || !utilities.containsKey(agentHash)) {
-			weights.put(agentHash, new HashMap<Issue, Float>());
-			utilities.put(agentHash, new HashMap<Issue, HashMap<String, Integer>>());
-		}
+		initializeIfNecessary(agentHash, newBid);
 		
 		//For each issue in the new bid		
-		for(Issue i : newBid.getIssues()) {
-			//INITIALIZATION
-			//If issue has not been seen before in weights, initialize it
-			if(!weights.get(agentHash).containsKey(i)) {
-				float initialWeight = ((float) 1.0 / (float) newBid.getIssues().size());
-				weights.get(agentHash).put(i, initialWeight);
-			}
-			//If issue has not been seen before in utilities, initialize it
-			if(!utilities.get(agentHash).containsKey(i)) {
-				utilities.get(agentHash).put(i, new HashMap<String, Integer>());
-			}
-			//If value has not been seen before, initialize it
-			if(!utilities.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()).toString())) {
-				utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), 0);
-			}
-			
+		for(Issue i : newBid.getIssues()) {	
+			System.out.println(i.getChildren());
 			if(agentsBids.size() >= 2) {
 				//UPDATE WEIGHTS
 				Bid previousBid = agentsBids.get(agentsBids.size()-2);
@@ -61,9 +45,17 @@ public class OpponentModel {
 			}
 			
 			//UPDATE UTILITIES
+			//If value has not been seen before, initialize it
+			//NOTE: this could be moved to initializeIfNecessary if we find a way to get all possible values of an issue.
+			if(!utilities.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()).toString())) {
+				utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), 0);
+			}
+			
 			//Increment frequency for this value of this issue
 			int freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()).toString());
 			utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), freq + 1);
+			
+			
 		}
 		
 		System.out.println(weights.toString());
@@ -72,13 +64,71 @@ public class OpponentModel {
 	}
 	
 	/**
+	 * Adds a new agent to the opponent modelling.
+	 * @param agentHash
+	 * @param newBid
+	 */
+	public void initializeIfNecessary(int agentHash, Bid newBid) {
+		//If agent has not been seen before, initialize it
+		if(!weights.containsKey(agentHash) || !utilities.containsKey(agentHash)) {
+			weights.put(agentHash, new HashMap<Issue, Float>());
+			utilities.put(agentHash, new HashMap<Issue, HashMap<String, Integer>>());
+			
+			//Initialize all issues
+			for(Issue i : newBid.getIssues()) {
+				//If issue has not been seen before in weights, initialize it
+				if(!weights.get(agentHash).containsKey(i)) {
+					float initialWeight = ((float) 1.0 / (float) newBid.getIssues().size());
+					weights.get(agentHash).put(i, initialWeight);
+				}
+				//If issue has not been seen before in utilities, initialize it
+				if(!utilities.get(agentHash).containsKey(i)) {
+					utilities.get(agentHash).put(i, new HashMap<String, Integer>());
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Returns an estimate of the opponents utility of a bid.
 	 * @param agentHash
+	 * @param bid
 	 * @return
 	 */
 	public double getOpponentUtility(int agentHash, Bid bid) {
+		//if the agent is not modelled yet
+		if(!utilities.containsKey(agentHash) || !weights.containsKey(agentHash)) {
+			System.out.println("Agent Unknown");
+			return Double.MAX_VALUE;
+		}
 		
-		return (Double) 0.1;
+		//Get information for this agent
+		HashMap<Issue, HashMap<String, Integer>> agentUtils = utilities.get(agentHash);
+		HashMap<Issue, Float> agentWeights = weights.get(agentHash);
+		
+		//Compute estimate with linear utility function
+		double utility = 0.0;
+		for(Issue i : agentUtils.keySet()) {
+			//If a utility is not available
+			if(!agentUtils.get(i).containsKey(bid.getValue(i.getNumber()).toString())) {
+				//calculate for worst-case scenario
+				utility += agentWeights.get(i) * 1.0;			
+			} else {
+				utility += agentWeights.get(i) * agentUtils.get(i).get(bid.getValue(i.getNumber()).toString());
+			}
+		}
+		
+		return utility;
+	}
+	
+	/**
+	 * Returns an estimate of the opponents utility of a bid.
+	 * @param agent
+	 * @param bid
+	 * @return
+	 */
+	public double getOpponentUtility(AgentID agent, Bid bid) {
+		return getOpponentUtility(agent.hashCode(), bid);
 	}
 	
 	public HashMap<Integer, HashMap<Issue, Float>> getWeights() {

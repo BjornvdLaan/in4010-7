@@ -65,6 +65,8 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {
+		
+		
 		if (lastReceivedBid != null
 				&& getUtility(lastReceivedBid) >= MINIMUM_BID_UTILITY) {
 			return new Accept(getPartyId(), lastReceivedBid);
@@ -98,6 +100,9 @@ public class Group7 extends AbstractNegotiationParty {
 			//Update opponent model
 			ArrayList<Bid> agentsBids = bidList.get(sender.hashCode());
 			opponentModel.update(sender.hashCode(), agentsBids);
+			
+			//Display estimate of utility
+			System.out.println("Estimated utility of opponent for this bid is " + opponentModel.getOpponentUtility(sender.hashCode(), receivedBid));
 		}
 	}
 
