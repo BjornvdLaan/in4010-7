@@ -18,19 +18,30 @@ import negotiator.utility.AbstractUtilitySpace;
  * This is your negotiation party.
  */
 public class Group7 extends AbstractNegotiationParty {
-
+	
+	//Information about bids
 	private Bid lastReceivedBid = null;
 	private HashMap<Integer, ArrayList<Bid>> bidList = new HashMap<>();
+	
+	/** Bid with the highest possible utility. */
+	private Bid maxBid;
+	
+	/** The minimum utility a bid should have to be accepted or offered. */
+	private double MINIMUM_BID_UTILITY;
 
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
 			TimeLineInfo tl, long randomSeed, AgentID agentId) {
+		
+		//Set minimum utility
+		MINIMUM_BID_UTILITY = 0.65;//utilSpace.getReservationValueUndiscounted();
 
 		super.init(utilSpace, dl, tl, randomSeed, agentId);
 		System.out.println("Discount Factor is "
 				+ utilSpace.getDiscountFactor());
 		System.out.println("Reservation Value is "
 				+ utilSpace.getReservationValueUndiscounted());
+		
 
 		// if you need to initialize some variables, please initialize them
 		// below
@@ -48,14 +59,11 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {
-		// with 50% chance, counter offer
-		// if we are the first party, also offer.
-		if (lastReceivedBid == null || !validActions.contains(Accept.class)
-				|| Math.random() > 0.5) {
-			return new Offer(getPartyId(), generateRandomBid());
-		} else {
+		if (lastReceivedBid != null
+				&& getUtility(lastReceivedBid) >= MINIMUM_BID_UTILITY) {
 			return new Accept(getPartyId(), lastReceivedBid);
 		}
+		return getRandomBid(MINIMUM_BID_UTILITY);
 	}
 
 	/**
@@ -84,6 +92,35 @@ public class Group7 extends AbstractNegotiationParty {
 	@Override
 	public String getDescription() {
 		return "example party group N";
+	}
+	
+	/**
+	 * Return a bid with a utility at least equal to the target utility, or the
+	 * bid with the highest utility possible if it takes too long to find.
+	 * 
+	 * @param target
+	 * @return found bid.
+	 */
+	private Action getRandomBid(double target) {
+		Bid bid = null;
+		try {
+			int loops = 0;
+			do {
+				bid = utilitySpace.getDomain().getRandomBid(null);
+				loops++;
+			} while (loops < 100000 && utilitySpace.getUtility(bid) < target);
+			if (bid == null) {
+				if (maxBid == null) {
+					// this is a computationally expensive operation, therefore
+					// cache result
+					maxBid = utilitySpace.getMaxUtilityBid();
+				}
+				bid = maxBid;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return new Offer(this.getPartyId(), bid);
 	}
 
 }
