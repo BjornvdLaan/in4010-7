@@ -60,7 +60,6 @@ public class OpponentModel {
 				}
 			}
 			
-			
 			//UPDATE UTILITIES
 			//Increment frequency for this value of this issue
 			int freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()).toString());
@@ -70,6 +69,16 @@ public class OpponentModel {
 		System.out.println(weights.toString());
 		System.out.println(utilities.toString());
 		
+	}
+	
+	/**
+	 * Returns an estimate of the opponents utility of a bid.
+	 * @param agentHash
+	 * @return
+	 */
+	public double getOpponentUtility(int agentHash, Bid bid) {
+		
+		return (Double) 0.1;
 	}
 	
 	public HashMap<Integer, HashMap<Issue, Float>> getWeights() {
