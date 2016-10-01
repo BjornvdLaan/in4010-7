@@ -7,16 +7,21 @@ import negotiator.AgentID;
 import negotiator.Bid;
 import negotiator.issue.Issue;
 import negotiator.issue.Objective;
+import negotiator.issue.Value;
+import negotiator.utility.AbstractUtilitySpace;
 
 public class OpponentModel {
-	private HashMap<Integer, HashMap<Issue, Float>> weights;
-	private HashMap<Integer, HashMap<Issue, HashMap<String, Integer>>> utilities;
-	private final float FACTOR = (float) 0.1;
+	private AbstractUtilitySpace utilSpace;
+	private HashMap<Integer, HashMap<Issue, Double>> weights;
+	private HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>> utilities;
+	private final double FACTOR = (double) 0.1;
 	
-	public OpponentModel() {
+	public OpponentModel(AbstractUtilitySpace us) {
+		//store util space
+		utilSpace = us;
 		//initialize datastructures
-		weights = new HashMap<Integer, HashMap<Issue, Float>>();
-		utilities = new HashMap<Integer, HashMap<Issue, HashMap<String, Integer>>>();
+		weights = new HashMap<Integer, HashMap<Issue, Double>>();
+		utilities = new HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>>();
 	}
 	
 	/**
@@ -38,21 +43,21 @@ public class OpponentModel {
 				//If the value for this issue is same as the one in the previous bid
 				if(newBid.getValue(i.getNumber()).equals(previousBid.getValue(i.getNumber()))) {
 					//Increase the weight
-					float currentWeight = weights.get(agentHash).get(i);
-					weights.get(agentHash).put(i, (float) (currentWeight + FACTOR));
+					double currentWeight = weights.get(agentHash).get(i);
+					weights.get(agentHash).put(i, currentWeight + FACTOR);
 				}
 			}
 			
 			//UPDATE UTILITIES
 			//If value has not been seen before, initialize it
 			//NOTE: this could be moved to initializeIfNecessary if we find a way to get all possible values of an issue.
-			if(!utilities.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()).toString())) {
-				utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), 0);
+			if(!utilities.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()))) {
+				utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), 0.0);
 			}
 			
 			//Increment frequency for this value of this issue
-			int freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()).toString());
-			utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()).toString(), freq + 1);
+			double freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()));
+			utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), freq + 1.0);
 		}
 		
 		normalizeAgentData(agentHash);
@@ -66,39 +71,39 @@ public class OpponentModel {
 	 * Normalizes model for this agent.
 	 * @param agentHash
 	 */
-	public void normalizeAgentData(int agentHash) {
+	private void normalizeAgentData(int agentHash) {
 		normalizeWeightsOfAgent(agentHash);
 		normalizeUtilitiesOfAgent(agentHash);
 	}
 	
-	public void normalizeWeightsOfAgent(int agentHash) {
-		HashMap<Issue, Float> agentWeights = weights.get(agentHash);
+	private void normalizeWeightsOfAgent(int agentHash) {
+		HashMap<Issue, Double> agentWeights = weights.get(agentHash);
 		
-		float sum = (float) 0.0;
+		double sum = (double) 0.0;
 		for(Issue i : agentWeights.keySet()) {
 			sum += agentWeights.get(i);
 		}
 		
 		for(Issue i : agentWeights.keySet()) {
-			float oldWeight = weights.get(agentHash).get(i);
+			double oldWeight = weights.get(agentHash).get(i);
 			weights.get(agentHash).put(i, oldWeight / sum);
 		}
 	}
 	
-	public void normalizeUtilitiesOfAgent(int agentHash) {
-		HashMap<Issue, HashMap<String, Integer>> agentUtils = utilities.get(agentHash);
+	private void normalizeUtilitiesOfAgent(int agentHash) {
+		HashMap<Issue, HashMap<Value, Double>> agentUtils = utilities.get(agentHash);
 		
 		for(Issue i : agentUtils.keySet()) {
-			HashMap<String, Integer> issueUtils = agentUtils.get(i);
+			HashMap<Value, Double> issueUtils = agentUtils.get(i);
 			
 			//find the biggest value of this issue
-			int max = Integer.MIN_VALUE;
-			for(int val : issueUtils.values()) {
-				max = Integer.max(max, val);
+			double max = (double) Integer.MIN_VALUE;
+			for(double val : issueUtils.values()) {
+				max = Double.max(max, val);
 			}
 			
-			for(String option : issueUtils.keySet()) {
-				int oldUtil = agentUtils.get(i).get(option);
+			for(Value option : issueUtils.keySet()) {
+				double oldUtil = agentUtils.get(i).get(option);
 				//NOTE: might not add up to one because of rounding differences. Maybe make it doubles?
 				utilities.get(agentHash).get(i).put(option, oldUtil / max);
 			}
@@ -110,22 +115,22 @@ public class OpponentModel {
 	 * @param agentHash
 	 * @param newBid
 	 */
-	public void initializeIfNecessary(int agentHash, Bid newBid) {
+	private void initializeIfNecessary(int agentHash, Bid newBid) {
 		//If agent has not been seen before, initialize it
 		if(!weights.containsKey(agentHash) || !utilities.containsKey(agentHash)) {
-			weights.put(agentHash, new HashMap<Issue, Float>());
-			utilities.put(agentHash, new HashMap<Issue, HashMap<String, Integer>>());
+			weights.put(agentHash, new HashMap<Issue, Double>());
+			utilities.put(agentHash, new HashMap<Issue, HashMap<Value, Double>>());
 			
 			//Initialize all issues
 			for(Issue i : newBid.getIssues()) {
 				//If issue has not been seen before in weights, initialize it
 				if(!weights.get(agentHash).containsKey(i)) {
-					float initialWeight = ((float) 1.0 / (float) newBid.getIssues().size());
+					double initialWeight = ((double) 1.0 / (double) newBid.getIssues().size());
 					weights.get(agentHash).put(i, initialWeight);
 				}
 				//If issue has not been seen before in utilities, initialize it
 				if(!utilities.get(agentHash).containsKey(i)) {
-					utilities.get(agentHash).put(i, new HashMap<String, Integer>());
+					utilities.get(agentHash).put(i, new HashMap<Value, Double>());
 				}
 			}
 		}
@@ -145,18 +150,18 @@ public class OpponentModel {
 		}
 		
 		//Get information for this agent
-		HashMap<Issue, HashMap<String, Integer>> agentUtils = utilities.get(agentHash);
-		HashMap<Issue, Float> agentWeights = weights.get(agentHash);
+		HashMap<Issue, HashMap<Value, Double>> agentUtils = utilities.get(agentHash);
+		HashMap<Issue, Double> agentWeights = weights.get(agentHash);
 		
 		//Compute estimate with linear utility function
 		double utility = 0.0;
 		for(Issue i : agentUtils.keySet()) {
 			//If a utility is not available
-			if(!agentUtils.get(i).containsKey(bid.getValue(i.getNumber()).toString())) {
+			if(!agentUtils.get(i).containsKey(bid.getValue(i.getNumber()))) {
 				//expected value for U(0,1)
 				utility += agentWeights.get(i) * 0.5;			
 			} else {
-				utility += agentWeights.get(i) * agentUtils.get(i).get(bid.getValue(i.getNumber()).toString());
+				utility += agentWeights.get(i) * agentUtils.get(i).get(bid.getValue(i.getNumber()));
 			}
 		}
 		
@@ -164,19 +169,46 @@ public class OpponentModel {
 	}
 	
 	/**
-	 * Returns an estimate of the opponents utility of a bid.
-	 * @param agent
-	 * @param bid
+	 * Returns the agents most bidded Value for this Issue.
+	 * @param agentHash
+	 * @param i
 	 * @return
 	 */
-	public double getOpponentUtility(AgentID agent, Bid bid) {
-		return getOpponentUtility(agent.hashCode(), bid);
-	}
+	public Value getOpponentsFavoriteOfIssue(int agentHash, Issue i) {
+		if(utilities.get(agentHash) != null) {
+			HashMap<Value, Double> values = utilities.get(agentHash).get(i);
+			Value favoriteValue = null;
+			
+			//get the value with the highest frequency
+			double favoriteFreq = Double.MIN_VALUE;
+			for(Value v : values.keySet()) {
+				if(values.get(v) > favoriteFreq) {
+					favoriteValue = v;
+					favoriteFreq = values.get(v);
+				}
+			}
+			
+			return favoriteValue;
+		} else {
+			return null;
+		}
+	}	
 	
-	public HashMap<Integer, HashMap<Issue, Float>> getWeights() {
-		return weights;
-	}
-	public HashMap<Integer, HashMap<Issue, HashMap<String, Integer>>> getUtilities() {
-		return utilities;
+	/**
+	 * Computes the bid that this agent will like most.
+	 * @param agentHash
+	 * @return
+	 */
+	public Bid getOpponentsBestBid(int agentHash) {
+		HashMap<Integer, Value> bidValues = new HashMap<Integer, Value>();
+		for(Issue i : utilSpace.getDomain().getIssues()) {
+			Value val = getOpponentsFavoriteOfIssue(agentHash, i);
+			if(val == null) {
+				return null;
+			} else {
+				bidValues.put(i.getNumber(), val);
+			}			
+		}
+		return new Bid(utilSpace.getDomain(), bidValues);
 	}
 }
