@@ -153,8 +153,8 @@ public class OpponentModel {
 		for(Issue i : agentUtils.keySet()) {
 			//If a utility is not available
 			if(!agentUtils.get(i).containsKey(bid.getValue(i.getNumber()).toString())) {
-				//calculate for worst-case scenario
-				utility += agentWeights.get(i) * 1.0;			
+				//expected value for U(0,1)
+				utility += agentWeights.get(i) * 0.5;			
 			} else {
 				utility += agentWeights.get(i) * agentUtils.get(i).get(bid.getValue(i.getNumber()).toString());
 			}
