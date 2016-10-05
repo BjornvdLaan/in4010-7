@@ -13,7 +13,7 @@ import negotiator.utility.AbstractUtilitySpace;
 public class OpponentModel {
 	private AbstractUtilitySpace utilSpace;
 	private HashMap<Integer, HashMap<Issue, Double>> weights;
-	private HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>> utilities;
+	private HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>> frequencies, utilities;
 	private final double FACTOR = (double) 0.1;
 	
 	public OpponentModel(AbstractUtilitySpace us) {
@@ -21,6 +21,7 @@ public class OpponentModel {
 		utilSpace = us;
 		//initialize datastructures
 		weights = new HashMap<Integer, HashMap<Issue, Double>>();
+		frequencies = new HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>>();
 		utilities = new HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>>();
 	}
 	
@@ -51,19 +52,19 @@ public class OpponentModel {
 			//UPDATE UTILITIES
 			//If value has not been seen before, initialize it
 			//NOTE: this could be moved to initializeIfNecessary if we find a way to get all possible values of an issue.
-			if(!utilities.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()))) {
-				utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), 0.0);
+			if(!frequencies.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()))) {
+				frequencies.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), 0.0);
 			}
 			
 			//Increment frequency for this value of this issue
-			double freq = utilities.get(agentHash).get(i).get(newBid.getValue(i.getNumber()));
-			utilities.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), freq + 1.0);
+			double freq = frequencies.get(agentHash).get(i).get(newBid.getValue(i.getNumber()));
+			frequencies.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), freq + 1.0);
 		}
 		
 		normalizeAgentData(agentHash);
 		
 		System.out.println(weights.toString());
-		System.out.println(utilities.toString());
+		System.out.println(frequencies.toString());
 		
 	}
 	
@@ -91,7 +92,7 @@ public class OpponentModel {
 	}
 	
 	private void normalizeUtilitiesOfAgent(int agentHash) {
-		HashMap<Issue, HashMap<Value, Double>> agentUtils = utilities.get(agentHash);
+		HashMap<Issue, HashMap<Value, Double>> agentUtils = frequencies.get(agentHash);
 		
 		for(Issue i : agentUtils.keySet()) {
 			HashMap<Value, Double> issueUtils = agentUtils.get(i);
@@ -104,7 +105,6 @@ public class OpponentModel {
 			
 			for(Value option : issueUtils.keySet()) {
 				double oldUtil = agentUtils.get(i).get(option);
-				//NOTE: might not add up to one because of rounding differences. Maybe make it doubles?
 				utilities.get(agentHash).get(i).put(option, oldUtil / max);
 			}
 		}
@@ -117,8 +117,9 @@ public class OpponentModel {
 	 */
 	private void initializeIfNecessary(int agentHash, Bid newBid) {
 		//If agent has not been seen before, initialize it
-		if(!weights.containsKey(agentHash) || !utilities.containsKey(agentHash)) {
+		if(!weights.containsKey(agentHash) || !frequencies.containsKey(agentHash)) {
 			weights.put(agentHash, new HashMap<Issue, Double>());
+			frequencies.put(agentHash, new HashMap<Issue, HashMap<Value, Double>>());
 			utilities.put(agentHash, new HashMap<Issue, HashMap<Value, Double>>());
 			
 			//Initialize all issues
@@ -129,7 +130,8 @@ public class OpponentModel {
 					weights.get(agentHash).put(i, initialWeight);
 				}
 				//If issue has not been seen before in utilities, initialize it
-				if(!utilities.get(agentHash).containsKey(i)) {
+				if(!frequencies.get(agentHash).containsKey(i)) {
+					frequencies.get(agentHash).put(i, new HashMap<Value, Double>());
 					utilities.get(agentHash).put(i, new HashMap<Value, Double>());
 				}
 			}
@@ -144,7 +146,7 @@ public class OpponentModel {
 	 */
 	public double getOpponentUtility(int agentHash, Bid bid) {
 		//if the agent is not modelled yet
-		if(!utilities.containsKey(agentHash) || !weights.containsKey(agentHash)) {
+		if(!frequencies.containsKey(agentHash) || !weights.containsKey(agentHash)) {
 			System.out.println("Agent Unknown");
 			return Double.MAX_VALUE;
 		}
@@ -152,6 +154,7 @@ public class OpponentModel {
 		//Get information for this agent
 		HashMap<Issue, HashMap<Value, Double>> agentUtils = utilities.get(agentHash);
 		HashMap<Issue, Double> agentWeights = weights.get(agentHash);
+		
 		
 		//Compute estimate with linear utility function
 		double utility = 0.0;
@@ -175,8 +178,8 @@ public class OpponentModel {
 	 * @return
 	 */
 	public Value getOpponentsFavoriteOfIssue(int agentHash, Issue i) {
-		if(utilities.get(agentHash) != null) {
-			HashMap<Value, Double> values = utilities.get(agentHash).get(i);
+		if(frequencies.get(agentHash) != null) {
+			HashMap<Value, Double> values = frequencies.get(agentHash).get(i);
 			Value favoriteValue = null;
 			
 			//get the value with the highest frequency
