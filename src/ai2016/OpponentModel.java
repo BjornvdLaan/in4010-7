@@ -2,6 +2,7 @@ package ai2016;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import negotiator.AgentID;
 import negotiator.Bid;
@@ -63,8 +64,8 @@ public class OpponentModel {
 		
 		normalizeAgentData(agentHash);
 		
-		System.out.println(weights.toString());
-		System.out.println(frequencies.toString());
+		//System.out.println(weights.toString());
+		//System.out.println(frequencies.toString());
 		
 	}
 	
@@ -213,5 +214,9 @@ public class OpponentModel {
 			}			
 		}
 		return new Bid(utilSpace.getDomain(), bidValues);
+	}
+	
+	public Set<Integer> getAgentHashes() {
+		return weights.keySet();
 	}
 }
