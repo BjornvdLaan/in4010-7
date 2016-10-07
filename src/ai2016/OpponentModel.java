@@ -63,8 +63,8 @@ public class OpponentModel {
 		
 		normalizeAgentData(agentHash);
 		
-		System.out.println(weights.toString());
-		System.out.println(frequencies.toString());
+		//System.out.println(weights.toString());
+		//System.out.println(frequencies.toString());
 		
 	}
 	
