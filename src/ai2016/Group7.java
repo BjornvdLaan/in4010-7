@@ -37,10 +37,10 @@ public class Group7 extends AbstractNegotiationParty {
 			TimeLineInfo tl, long randomSeed, AgentID agentId) {
 		
 		//Set minimum utility
-		MINIMUM_BID_UTILITY = 0.65;//utilSpace.getReservationValueUndiscounted();
+		MINIMUM_BID_UTILITY = 0.70;//utilSpace.getReservationValueUndiscounted();
 		
 		//Initialize Opponent model
-		opponentModel = new OpponentModel();
+		opponentModel = new OpponentModel(utilSpace);
 
 		super.init(utilSpace, dl, tl, randomSeed, agentId);
 		System.out.println("Discount Factor is "
@@ -65,11 +65,30 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {
+		
 		if (lastReceivedBid != null
 				&& getUtility(lastReceivedBid) >= MINIMUM_BID_UTILITY) {
 			return new Accept(getPartyId(), lastReceivedBid);
 		}
-		return getRandomBid(MINIMUM_BID_UTILITY);
+		
+		//Get random walker bid
+		Action randomAction = getRandomBid(MINIMUM_BID_UTILITY);
+		Bid randomBid = ((Offer) randomAction).getBid();
+		
+		//If this is the first bid, do random
+		if(getLastReceivedAction() == null || getLastReceivedAction().getAgent() == null) {
+			return new Offer(getPartyId(), randomBid);
+		} else {
+			//Get best bid for previous bidder
+			Bid niceBid = opponentModel.getOpponentsBestBid(getLastReceivedAction().getAgent().hashCode());
+		
+			//Choose best of both
+			if(niceBid == null || getUtility(randomBid) > getUtility(niceBid)) {
+				return new Offer(getPartyId(), randomBid);
+			} else {
+				return new Offer(getPartyId(), niceBid);
+			}
+		}
 	}
 
 	/**
@@ -98,6 +117,9 @@ public class Group7 extends AbstractNegotiationParty {
 			//Update opponent model
 			ArrayList<Bid> agentsBids = bidList.get(sender.hashCode());
 			opponentModel.update(sender.hashCode(), agentsBids);
+			
+			//Display estimate of utility
+			System.out.println("Estimated utility of opponent for this bid is " + opponentModel.getOpponentUtility(sender.hashCode(), receivedBid));
 		}
 	}
 
