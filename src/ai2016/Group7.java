@@ -3,6 +3,7 @@ package ai2016;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import negotiator.AgentID;
 import negotiator.Bid;
@@ -77,13 +78,16 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {	
+		//If there is no previous bid, make a random offer
 		if(lastReceivedBid == null) {
 			Action randomAction = getRandomBid(INITIAL_UTIL);				
 			return new Offer(getPartyId(), ((Offer) randomAction).getBid());
 		}
 		
+		//get current time as fraction of total time
 		double current = timeline.getCurrentTime() / timeline.getTotalTime();
 		
+		//if we are before the turning point
 		if(current <= TURNING_POINT) {
 			if (lastReceivedBid != null && getUtility(lastReceivedBid) >= INITIAL_UTIL) {
 				return new Accept(getPartyId(), lastReceivedBid);
@@ -91,7 +95,9 @@ public class Group7 extends AbstractNegotiationParty {
 				Action randomAction = getRandomBid(INITIAL_UTIL);				
 				return new Offer(getPartyId(), ((Offer) randomAction).getBid());
 			}
-		} else {			
+		} 
+		//if we are after the turning point
+		else {			
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			Action action = getRandomBid(INITIAL_UTIL - concession);
@@ -119,10 +125,11 @@ public class Group7 extends AbstractNegotiationParty {
 	public void receiveMessage(AgentID sender, Action action) {
 		super.receiveMessage(sender, action);
 		if (action instanceof Offer) {
+			//save the received bid
 			Bid receivedBid = ((Offer) action).getBid();
 			lastReceivedBid = receivedBid;
 			
-			//Save bid
+			//Save bid in list of all bids
 			if(!bidList.containsKey(sender.hashCode())) {
 				bidList.put(sender.hashCode(), new ArrayList<Bid>());
 			}
@@ -131,15 +138,12 @@ public class Group7 extends AbstractNegotiationParty {
 			//Update opponent model
 			ArrayList<Bid> agentsBids = bidList.get(sender.hashCode());
 			opponentModel.update(sender.hashCode(), agentsBids);
-			
-			//Display estimate of utility
-			//System.out.println("Estimated utility of opponent for this bid is " + opponentModel.getOpponentUtility(sender.hashCode(), receivedBid));
 		}
 	}
 
 	@Override
 	public String getDescription() {
-		return "example party group N";
+		return "Group 7";
 	}
 	
 	/**
