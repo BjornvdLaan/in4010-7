@@ -52,6 +52,7 @@ public class Group7 extends AbstractNegotiationParty {
 		this.agentId = agentId;		
 		
 		
+		
 		//Initialize Opponent model
 		opponentModel = new OpponentModel(utilSpace);
 
