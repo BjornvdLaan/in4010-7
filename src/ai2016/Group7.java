@@ -1,6 +1,7 @@
 package ai2016;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -11,6 +12,7 @@ import negotiator.Deadline;
 import negotiator.actions.Accept;
 import negotiator.actions.Action;
 import negotiator.actions.Offer;
+import negotiator.issue.Objective;
 import negotiator.parties.AbstractNegotiationParty;
 import negotiator.session.TimeLineInfo;
 import negotiator.utility.AbstractUtilitySpace;
@@ -51,8 +53,6 @@ public class Group7 extends AbstractNegotiationParty {
 		this.randomSeed = randomSeed;
 		this.agentId = agentId;		
 		
-		
-		
 		//Initialize Opponent model
 		opponentModel = new OpponentModel(utilSpace);
 
@@ -79,6 +79,8 @@ public class Group7 extends AbstractNegotiationParty {
 	 */
 	@Override
 	public Action chooseAction(List<Class<? extends Action>> validActions) {	
+		System.out.println(utilSpace.getDomain().getIssues().get(1).getChildCount());
+		
 		//If there is no previous bid, make a random offer
 		if(lastReceivedBid == null) {
 			Action randomAction = getRandomBid(INITIAL_UTIL);				
