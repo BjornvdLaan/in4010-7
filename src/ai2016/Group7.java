@@ -1,10 +1,8 @@
 package ai2016;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import negotiator.AgentID;
 import negotiator.Bid;
@@ -12,7 +10,10 @@ import negotiator.Deadline;
 import negotiator.actions.Accept;
 import negotiator.actions.Action;
 import negotiator.actions.Offer;
-import negotiator.issue.Objective;
+import negotiator.issue.Issue;
+import negotiator.issue.IssueDiscrete;
+import negotiator.issue.Value;
+import negotiator.issue.ValueDiscrete;
 import negotiator.parties.AbstractNegotiationParty;
 import negotiator.session.TimeLineInfo;
 import negotiator.utility.AbstractUtilitySpace;
@@ -33,9 +34,10 @@ public class Group7 extends AbstractNegotiationParty {
 	private long randomSeed;
 	private AgentID agentId;
 	
+	private ArrayList<Bid> bidsList = new ArrayList<Bid>();
 	//Information about bids
 	private Bid lastReceivedBid = null;
-	private HashMap<Integer, ArrayList<Bid>> bidList = new HashMap<>();
+	private HashMap<Integer, ArrayList<Bid>> bidHistory = new HashMap<>();
 	
 	/** Bid with the highest possible utility. */
 	private Bid maxBid;
@@ -52,6 +54,8 @@ public class Group7 extends AbstractNegotiationParty {
 		this.timeline = tl;
 		this.randomSeed = randomSeed;
 		this.agentId = agentId;		
+		
+		computeAllBids();
 		
 		//Initialize Opponent model
 		opponentModel = new OpponentModel(utilSpace);
@@ -78,9 +82,7 @@ public class Group7 extends AbstractNegotiationParty {
 	 * @return The chosen action.
 	 */
 	@Override
-	public Action chooseAction(List<Class<? extends Action>> validActions) {	
-		System.out.println(utilSpace.getDomain().getIssues().get(1).getChildCount());
-		
+	public Action chooseAction(List<Class<? extends Action>> validActions) {			
 		//If there is no previous bid, make a random offer
 		if(lastReceivedBid == null) {
 			Action randomAction = getRandomBid(INITIAL_UTIL);				
@@ -133,13 +135,13 @@ public class Group7 extends AbstractNegotiationParty {
 			lastReceivedBid = receivedBid;
 			
 			//Save bid in list of all bids
-			if(!bidList.containsKey(sender.hashCode())) {
-				bidList.put(sender.hashCode(), new ArrayList<Bid>());
+			if(!bidHistory.containsKey(sender.hashCode())) {
+				bidHistory.put(sender.hashCode(), new ArrayList<Bid>());
 			}
-			bidList.get(sender.hashCode()).add(receivedBid);
+			bidHistory.get(sender.hashCode()).add(receivedBid);
 			
 			//Update opponent model
-			ArrayList<Bid> agentsBids = bidList.get(sender.hashCode());
+			ArrayList<Bid> agentsBids = bidHistory.get(sender.hashCode());
 			opponentModel.update(sender.hashCode(), agentsBids);
 		}
 	}
@@ -176,6 +178,55 @@ public class Group7 extends AbstractNegotiationParty {
 			e.printStackTrace();
 		}
 		return new Offer(this.getPartyId(), bid);
+	}
+	
+	private ArrayList<Bid> getBidsBetween(double lower, double upper) {
+		ArrayList<Bid> result = new ArrayList<Bid>();
+		
+		for(Bid b : bidsList) {
+			if(lower < getUtility(b) && getUtility(b) < upper) {
+				result.add(b);
+			}
+		}
+		
+		return result;
+	}
+	
+	private void computeAllBids() {
+		Issue issue = utilSpace.getDomain().getIssues( ).get(1);
+		
+		if (issue instanceof IssueDiscrete) {
+		    IssueDiscrete discreteIssue = (IssueDiscrete) issue;
+		    List<ValueDiscrete> values = discreteIssue.getValues();
+		    for(Value value : values) {
+		    	HashMap<Integer, Value> bidValues = new HashMap<Integer, Value>();
+		    	traverseDomain(bidValues, 1, value);
+		    }
+		}
+		
+		System.out.println(bidsList.toString());
+	}
+	
+	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
+		//add value to bid
+		bidValues.put(issueNumber, previousValue);
+		
+		//stop condition
+		if(issueNumber >= utilSpace.getDomain().getIssues().size() - 1) {
+			bidsList.add(new Bid(utilSpace.getDomain(), bidValues));
+			return;
+		} 
+		//recursive step
+		else {
+			Issue issue = utilSpace.getDomain().getIssues().get(issueNumber + 1);
+	        if (issue instanceof IssueDiscrete) {
+	            IssueDiscrete discreteIssue = (IssueDiscrete) issue;
+	            List<ValueDiscrete> values = discreteIssue.getValues();
+	            for(Value value : values) {
+	            	traverseDomain(bidValues, issueNumber + 1, value);
+	            }
+	        }
+		}
 	}
 
 }
