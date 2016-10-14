@@ -66,6 +66,7 @@ public class OpponentModel {
 		
 		//System.out.println(weights.toString());
 		//System.out.println(frequencies.toString());
+		//System.out.println(utilities.toString());
 		
 	}
 	

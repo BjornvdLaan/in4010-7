@@ -23,6 +23,9 @@ public class Group7 extends AbstractNegotiationParty {
 	private final double INITIAL_UTIL = 0.95;
 	private final double MINIMUM_UTIL = 0.75;
 	private final double TURNING_POINT = 0.3;
+	      //constants for ACnext-strategy
+	private final double alpha = 1.02;
+	private final double beta = 0.02;
 	
 	//variables received in init
 	private AbstractUtilitySpace utilSpace;
@@ -88,23 +91,23 @@ public class Group7 extends AbstractNegotiationParty {
 		//get current time as fraction of total time
 		double current = timeline.getCurrentTime() / timeline.getTotalTime();
 		
-		//if we are before the turning point
+		//if we are before the turning point (use alpha and beta to tweak performance of ACnext)
 		if(current <= TURNING_POINT) {
-			if (lastReceivedBid != null && getUtility(lastReceivedBid) >= INITIAL_UTIL) {
+			if (lastReceivedBid != null && ((alpha * getUtility(lastReceivedBid)) + beta) >= INITIAL_UTIL) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				Action randomAction = getRandomBid(INITIAL_UTIL);				
 				return new Offer(getPartyId(), ((Offer) randomAction).getBid());
 			}
 		} 
-		//if we are after the turning point
+		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
 		else {			
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			Action action = getRandomBid(INITIAL_UTIL - concession);
 			Bid nextBid = ((Offer) action).getBid();
 			
-			if(getUtility(lastReceivedBid) >= getUtility(nextBid)) {
+			if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), ((Offer) action).getBid());
