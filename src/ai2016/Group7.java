@@ -59,7 +59,7 @@ public class Group7 extends AbstractNegotiationParty {
 		this.randomSeed = randomSeed;
 		this.agentId = agentId;		
 		
-		//Compute all own bids=
+		//Compute all own bids
 		computeAllBids();
 		
 		//Initialize Opponent model
@@ -158,7 +158,6 @@ public class Group7 extends AbstractNegotiationParty {
 	private Bid getRandomBid(double target) {
 		//get all possible bids
 		ArrayList<Bid> candidates = getBidsBetween(target, 1.0);
-		System.out.println(candidates.toString());
 		
 		
 		//if no candidates, do max utility bid
@@ -190,7 +189,8 @@ public class Group7 extends AbstractNegotiationParty {
 	}
 	
 	private void computeAllBids() {
-		Issue issue = utilSpace.getDomain().getIssues().get(0);
+		computeAllBids2();
+		/*Issue issue = utilSpace.getDomain().getIssues().get(0);
 		if (issue instanceof IssueDiscrete) {
 		    IssueDiscrete discreteIssue = (IssueDiscrete) issue;
 		    List<ValueDiscrete> values = discreteIssue.getValues();
@@ -199,7 +199,40 @@ public class Group7 extends AbstractNegotiationParty {
 		    }
 		}
 		
-		System.out.println(bidsList);
+		System.out.println(bidsList);*/
+	}
+	
+	/**
+	 * Temporary method. ONLY USABLE ON PARTY DOMAIN.
+	 */
+	private void computeAllBids2() {
+	    List<ValueDiscrete> avals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(0)).getValues();
+	    List<ValueDiscrete> bvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(1)).getValues();
+	    List<ValueDiscrete> cvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(2)).getValues();
+	    List<ValueDiscrete> dvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(3)).getValues();
+	    List<ValueDiscrete> evals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(4)).getValues();
+	    List<ValueDiscrete> fvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(5)).getValues();
+	    
+		for(Value a : avals) {
+			for(Value b : bvals) {
+				for(Value c : cvals) {
+					for(Value d : dvals) {
+						for(Value e : evals) {
+							for(Value f : fvals) {
+								HashMap<Integer, Value> values = new HashMap<Integer, Value>();
+								values.put(1, a);
+								values.put(2, b);
+								values.put(3, c);
+								values.put(4, d);
+								values.put(5, e);
+								values.put(6, f);
+								bidsList.add(new Bid(utilSpace.getDomain(), values));
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
