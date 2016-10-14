@@ -3,6 +3,7 @@ package ai2016;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 import negotiator.AgentID;
 import negotiator.Bid;
@@ -55,6 +56,7 @@ public class Group7 extends AbstractNegotiationParty {
 		this.randomSeed = randomSeed;
 		this.agentId = agentId;		
 		
+		//Compute all own bids=
 		computeAllBids();
 		
 		//Initialize Opponent model
@@ -85,8 +87,8 @@ public class Group7 extends AbstractNegotiationParty {
 	public Action chooseAction(List<Class<? extends Action>> validActions) {			
 		//If there is no previous bid, make a random offer
 		if(lastReceivedBid == null) {
-			Action randomAction = getRandomBid(INITIAL_UTIL);				
-			return new Offer(getPartyId(), ((Offer) randomAction).getBid());
+			Bid randomBid = getRandomBid(INITIAL_UTIL);
+			return new Offer(getPartyId(), randomBid);
 		}
 		
 		//get current time as fraction of total time
@@ -97,21 +99,20 @@ public class Group7 extends AbstractNegotiationParty {
 			if (lastReceivedBid != null && getUtility(lastReceivedBid) >= INITIAL_UTIL) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
-				Action randomAction = getRandomBid(INITIAL_UTIL);				
-				return new Offer(getPartyId(), ((Offer) randomAction).getBid());
+				Bid randomBid = getRandomBid(INITIAL_UTIL);				
+				return new Offer(getPartyId(), randomBid);
 			}
 		} 
 		//if we are after the turning point
 		else {			
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
-			Action action = getRandomBid(INITIAL_UTIL - concession);
-			Bid nextBid = ((Offer) action).getBid();
+			Bid nextBid = getRandomBid(INITIAL_UTIL - concession);
 			
 			if(getUtility(lastReceivedBid) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
-				return new Offer(getPartyId(), ((Offer) action).getBid());
+				return new Offer(getPartyId(), nextBid);
 			}
 		}
 	}
@@ -151,60 +152,51 @@ public class Group7 extends AbstractNegotiationParty {
 		return "Group 7";
 	}
 	
-	/**
-	 * Return a bid with a utility at least equal to the target utility, or the
-	 * bid with the highest utility possible if it takes too long to find.
-	 * 
-	 * @param target
-	 * @return found bid.
-	 */
-	private Action getRandomBid(double target) {
-		Bid bid = null;
-		try {
-			int loops = 0;
-			do {
-				bid = utilitySpace.getDomain().getRandomBid(null);
-				loops++;
-			} while (loops < 100000 && utilitySpace.getUtility(bid) < target);
-			if (bid == null) {
-				if (maxBid == null) {
-					// this is a computationally expensive operation, therefore
-					// cache result
-					maxBid = utilitySpace.getMaxUtilityBid();
-				}
-				bid = maxBid;
+	private Bid getRandomBid(double target) {
+		//get all possible bids
+		ArrayList<Bid> candidates = getBidsBetween(target, 1.0);
+		System.out.println(candidates.toString());
+		
+		
+		//if no candidates, do max utility bid
+		if(candidates.size() == 0) {
+			try {
+				return utilSpace.getMaxUtilityBid();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
-		return new Offer(this.getPartyId(), bid);
+		
+		//draw a random number
+		Random rand = new Random();
+	    int random = rand.nextInt(candidates.size());
+	    
+	    return candidates.get(random);
 	}
 	
 	private ArrayList<Bid> getBidsBetween(double lower, double upper) {
 		ArrayList<Bid> result = new ArrayList<Bid>();
 		
 		for(Bid b : bidsList) {
-			if(lower < getUtility(b) && getUtility(b) < upper) {
+			if(lower <= getUtility(b) && getUtility(b) <= upper) {
 				result.add(b);
 			}
 		}
-		
+		System.out.println(result.size());
 		return result;
 	}
 	
 	private void computeAllBids() {
-		Issue issue = utilSpace.getDomain().getIssues( ).get(1);
-		
+		Issue issue = utilSpace.getDomain().getIssues().get(0);
 		if (issue instanceof IssueDiscrete) {
 		    IssueDiscrete discreteIssue = (IssueDiscrete) issue;
 		    List<ValueDiscrete> values = discreteIssue.getValues();
 		    for(Value value : values) {
-		    	HashMap<Integer, Value> bidValues = new HashMap<Integer, Value>();
-		    	traverseDomain(bidValues, 1, value);
+		    	traverseDomain(new HashMap<Integer, Value>(), 1, value);
 		    }
 		}
 		
-		System.out.println(bidsList.toString());
+		System.out.println(bidsList);
 	}
 	
 	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
@@ -212,13 +204,12 @@ public class Group7 extends AbstractNegotiationParty {
 		bidValues.put(issueNumber, previousValue);
 		
 		//stop condition
-		if(issueNumber >= utilSpace.getDomain().getIssues().size() - 1) {
+		if(issueNumber == utilSpace.getDomain().getIssues().size()) {
 			bidsList.add(new Bid(utilSpace.getDomain(), bidValues));
-			return;
 		} 
 		//recursive step
 		else {
-			Issue issue = utilSpace.getDomain().getIssues().get(issueNumber + 1);
+			Issue issue = utilSpace.getDomain().getIssues().get(issueNumber);
 	        if (issue instanceof IssueDiscrete) {
 	            IssueDiscrete discreteIssue = (IssueDiscrete) issue;
 	            List<ValueDiscrete> values = discreteIssue.getValues();
