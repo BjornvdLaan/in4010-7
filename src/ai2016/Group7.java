@@ -257,3 +257,6 @@ public class Group7 extends AbstractNegotiationParty {
 	}
 
 }
+
+
+

@@ -220,4 +220,53 @@ public class OpponentModel {
 	public Set<Integer> getAgentHashes() {
 		return weights.keySet();
 	}
+	
+	public Bid formNiceBid(ArrayList<Bid> sortedBids, double upperBoundUtility, String sumOrMaxMin) {
+		//initialize variables
+		double deltaUtility = 0.05;
+		double lowerBoundUtility = upperBoundUtility - deltaUtility;
+		ArrayList<Bid> feasibleBids = getBidsBetween(lowerBoundUtility, upperBoundUtility);
+		
+		double maxSumBidUtility = 0;
+		Bid maxSumBid = null;
+		double maxMinBidUtility = 1;
+		Bid maxMinBid = null;
+		
+		for(Bid b : feasibleBids) {
+			
+			double maxMin = 1;
+			double sum = 0;
+			
+			for(int hash : weights.keySet()) {
+				//we have to calculate the utility of every opponent 
+				double opponentUtility = getOpponentUtility(hash, b);
+				//calculate the sum over the opponents utility for the bid
+				sum += opponentUtility;
+				//calculate the maxMin utility for the bid
+				if(opponentUtility <= maxMin) {
+					maxMin = opponentUtility;
+				}	
+			}
+				//update maxSumBid and maxMinBid if we found a better bid
+				if(sum >= maxSumBidUtility) {
+					maxSumBidUtility = sum;
+					maxSumBid = b;
+				}
+				
+				if(maxMin >= maxMinBidUtility) {
+					maxMinBidUtility = maxMin;
+					maxMinBid = b;
+				}
+			}
+		
+		if(sumOrMaxMin.equals("sum")) {
+			return maxSumBid;
+		}
+		else if(sumOrMaxMin.equals("minMax")) {
+			return maxMinBid;
+		}
+		else {
+			return null;
+		}
+	}
 }
