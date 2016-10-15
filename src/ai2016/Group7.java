@@ -110,7 +110,23 @@ public class Group7 extends AbstractNegotiationParty {
 		else {			
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
-			Bid nextBid = getRandomBid(INITIAL_UTIL - concession);
+			
+			double upper = INITIAL_UTIL - concession;
+			double lower = upper - 0.05;
+			
+			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
+			
+			Bid nextBid = null;			
+		    if ((Math.random() * 2) + 1 == 1) {
+		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
+		    } else {
+		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
+		    }
+		    
+			//if no bid is formed
+			if(nextBid == null) {
+				return new Offer(getPartyId(), getRandomBid(INITIAL_UTIL - concession));
+			}
 			
 			if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);

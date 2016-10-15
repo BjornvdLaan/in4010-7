@@ -221,11 +221,9 @@ public class OpponentModel {
 		return weights.keySet();
 	}
 	
-	public Bid formNiceBid(ArrayList<Bid> sortedBids, double upperBoundUtility, String sumOrMaxMin) {
+	public Bid formNiceBid(ArrayList<Bid> feasibleBids, BidStrategy strategy) {
 		//initialize variables
-		double deltaUtility = 0.05;
-		double lowerBoundUtility = upperBoundUtility - deltaUtility;
-		ArrayList<Bid> feasibleBids = getBidsBetween(lowerBoundUtility, upperBoundUtility);
+		//double deltaUtility = 0.05;
 		
 		double maxSumBidUtility = 0;
 		Bid maxSumBid = null;
@@ -247,22 +245,23 @@ public class OpponentModel {
 					maxMin = opponentUtility;
 				}	
 			}
-				//update maxSumBid and maxMinBid if we found a better bid
-				if(sum >= maxSumBidUtility) {
-					maxSumBidUtility = sum;
-					maxSumBid = b;
-				}
-				
-				if(maxMin >= maxMinBidUtility) {
-					maxMinBidUtility = maxMin;
-					maxMinBid = b;
-				}
+			
+			//update maxSumBid and maxMinBid if we found a better bid
+			if(sum >= maxSumBidUtility) {
+				maxSumBidUtility = sum;
+				maxSumBid = b;
 			}
+			
+			if(maxMin >= maxMinBidUtility) {
+				maxMinBidUtility = maxMin;
+				maxMinBid = b;
+			}
+		}
 		
-		if(sumOrMaxMin.equals("sum")) {
+		if(strategy == BidStrategy.SUM) {
 			return maxSumBid;
 		}
-		else if(sumOrMaxMin.equals("minMax")) {
+		else if(strategy == BidStrategy.MIN) {
 			return maxMinBid;
 		}
 		else {
