@@ -70,10 +70,6 @@ public class Group7 extends AbstractNegotiationParty {
 				+ utilSpace.getDiscountFactor());
 		System.out.println("Reservation Value is "
 				+ utilSpace.getReservationValueUndiscounted());
-		
-
-		// if you need to initialize some variables, please initialize them
-		// below
 
 	}
 
@@ -111,23 +107,25 @@ public class Group7 extends AbstractNegotiationParty {
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			
-			double upper = INITIAL_UTIL - concession;
-			double lower = upper - 0.05;
+			double lower = INITIAL_UTIL - concession;
+			//double lower = upper - 0.05;
 			
-			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
+			ArrayList<Bid> feasibleBids = getBidsBetween(lower, 1.0);
 			
-			Bid nextBid = null;			
+			Bid nextBid = null;		
+			//choose randomly between bid strategies
 		    if ((Math.random() * 2) + 1 == 1) {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
 		    } else {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
 		    }
 		    
-			//if no bid is formed
+			//if no bid is formed, do a random bid
 			if(nextBid == null) {
 				return new Offer(getPartyId(), getRandomBid(INITIAL_UTIL - concession));
 			}
 			
+			//accept according to acceptance strategy
 			if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
@@ -200,7 +198,6 @@ public class Group7 extends AbstractNegotiationParty {
 				result.add(b);
 			}
 		}
-		System.out.println(result.size());
 		return result;
 	}
 	
