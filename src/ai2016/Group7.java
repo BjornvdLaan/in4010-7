@@ -108,9 +108,9 @@ public class Group7 extends AbstractNegotiationParty {
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			
 			double lower = INITIAL_UTIL - concession;
-			//double lower = upper - 0.05;
+			double upper = 1.0;
 			
-			ArrayList<Bid> feasibleBids = getBidsBetween(lower, 1.0);
+			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
 			
 			Bid nextBid = null;		
 			//choose randomly between bid strategies
