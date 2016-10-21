@@ -222,8 +222,6 @@ public class OpponentModel {
 	}
 	
 	public Bid formNiceBid(ArrayList<Bid> feasibleBids, BidStrategy strategy) {
-		//initialize variables
-		//double deltaUtility = 0.05;
 		
 		double maxSumBidUtility = 0;
 		Bid maxSumBid = null;

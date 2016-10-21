@@ -24,12 +24,12 @@ import negotiator.utility.AbstractUtilitySpace;
  */
 public class Group7 extends AbstractNegotiationParty {
 	//constants
-	private final double INITIAL_UTIL = 0.95;
-	private final double MINIMUM_UTIL = 0.75;
+	private final double INITIAL_UTIL = 1;
+	private final double MINIMUM_UTIL = 0.85;
 	private final double TURNING_POINT = 0.3;
-	      //constants for ACnext-strategy
-	private final double alpha = 1.02;
-	private final double beta = 0.02;
+	//constants for ACnext-strategy
+	private final double ALPHA = 1.02;
+	private final double BETA = 0.02;
 	
 	//variables received in init
 	private AbstractUtilitySpace utilSpace;
@@ -47,7 +47,7 @@ public class Group7 extends AbstractNegotiationParty {
 	private Bid maxBid;
 	
 	//Opponent model
-	private OpponentModel opponentModel;
+	private OpponentModel opponentModel;	
 
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
@@ -95,15 +95,16 @@ public class Group7 extends AbstractNegotiationParty {
 		
 		//if we are before the turning point (use alpha and beta to tweak performance of ACnext)
 		if(current <= TURNING_POINT) {
-			if (lastReceivedBid != null && ((alpha * getUtility(lastReceivedBid)) + beta) >= INITIAL_UTIL) {
+			if (lastReceivedBid != null && ((ALPHA * getUtility(lastReceivedBid)) + BETA) >= INITIAL_UTIL) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				Bid randomBid = getRandomBid(INITIAL_UTIL);				
 				return new Offer(getPartyId(), randomBid);
 			}
 		} 
+		
 		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
-		else {			
+		else {
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			
@@ -126,7 +127,7 @@ public class Group7 extends AbstractNegotiationParty {
 			}
 			
 			//accept according to acceptance strategy
-			if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
+			if(((BETA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), nextBid);
