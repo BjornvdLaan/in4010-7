@@ -47,7 +47,10 @@ public class Group7 extends AbstractNegotiationParty {
 	private Bid maxBid;
 	
 	//Opponent model
-	private OpponentModel opponentModel;	
+	private OpponentModel opponentModel;
+	
+	//boolean to decide between SUM of MAXMIN bid
+	boolean minAndMax = false;
 
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
@@ -72,6 +75,7 @@ public class Group7 extends AbstractNegotiationParty {
 				+ utilSpace.getReservationValueUndiscounted());
 
 	}
+	
 
 	/**
 	 * Each round this method gets called and ask you to accept or offer. The
@@ -115,10 +119,12 @@ public class Group7 extends AbstractNegotiationParty {
 			
 			Bid nextBid = null;		
 			//choose randomly between bid strategies
-		    if ((Math.random() * 2) + 1 == 1) {
+		    if (minAndMax == false) {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
+		    	minAndMax = true;
 		    } else {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
+		    	minAndMax = false;
 		    }
 		    
 			//if no bid is formed, do a random bid
