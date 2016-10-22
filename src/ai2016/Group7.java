@@ -25,8 +25,8 @@ import negotiator.utility.AbstractUtilitySpace;
 public class Group7 extends AbstractNegotiationParty {
 	//constants
 	private final double INITIAL_UTIL = 1;
-	private final double MINIMUM_UTIL = 0.80;
-	private final double TURNING_POINT = 0.25;
+	private final double MINIMUM_UTIL = 0.82;
+	private final double TURNING_POINT = 0.1;
 	//constants for ACnext-strategy
 	private final double ALPHA = 1.02;
 	private final double BETA = 0.02;
