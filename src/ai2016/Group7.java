@@ -73,7 +73,6 @@ public class Group7 extends AbstractNegotiationParty {
 				+ utilSpace.getDiscountFactor());
 		System.out.println("Reservation Value is "
 				+ utilSpace.getReservationValueUndiscounted());
-
 	}
 	
 
@@ -109,8 +108,8 @@ public class Group7 extends AbstractNegotiationParty {
 		
 		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
 		else {
-			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
-			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
+			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (1 - TURNING_POINT);
+			double concession = (current - TURNING_POINT)/ (1-TURNING_POINT) * helling;
 			
 			double lower = INITIAL_UTIL - concession;
 			double upper = INITIAL_UTIL;
@@ -119,7 +118,8 @@ public class Group7 extends AbstractNegotiationParty {
 			
 			Bid nextBid = null;		
 			//choose randomly between bid strategies
-		    if (minAndMax == false) {
+			
+			if (minAndMax == false) {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
 		    	minAndMax = true;
 		    } else {
@@ -131,9 +131,16 @@ public class Group7 extends AbstractNegotiationParty {
 			if(nextBid == null) {
 				return new Offer(getPartyId(), getRandomBid(INITIAL_UTIL - concession));
 			}
-			
+
 			//accept according to acceptance strategy
-			if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
+			if(getUtility(lastReceivedBid) >= lower) {
+				System.out.println("1");
+				return new Accept(getPartyId(), lastReceivedBid);
+			} else if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
+				System.out.println("2");
+				return new Accept(getPartyId(), lastReceivedBid);
+			} else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
+				System.out.println("3");
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), nextBid);
