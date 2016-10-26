@@ -24,12 +24,12 @@ import negotiator.utility.AbstractUtilitySpace;
  */
 public class Group7 extends AbstractNegotiationParty {
 	//constants
-	private final double INITIAL_UTIL = 0.95;
-	private final double MINIMUM_UTIL = 0.75;
-	private final double TURNING_POINT = 0.3;
-	      //constants for ACnext-strategy
-	private final double alpha = 1.02;
-	private final double beta = 0.02;
+	private final double INITIAL_UTIL = 1;
+	private final double MINIMUM_UTIL = 0.82;
+	private final double TURNING_POINT = 0.1;
+	//constants for ACnext-strategy
+	private final double ALPHA = 1.02;
+	private final double BETA = 0.02;
 	
 	//variables received in init
 	private AbstractUtilitySpace utilSpace;
@@ -48,6 +48,9 @@ public class Group7 extends AbstractNegotiationParty {
 	
 	//Opponent model
 	private OpponentModel opponentModel;
+	
+	//boolean to decide between SUM of MAXMIN bid
+	boolean minAndMax = false;
 
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
@@ -72,6 +75,7 @@ public class Group7 extends AbstractNegotiationParty {
 				+ utilSpace.getReservationValueUndiscounted());
 
 	}
+	
 
 	/**
 	 * Each round this method gets called and ask you to accept or offer. The
@@ -95,29 +99,32 @@ public class Group7 extends AbstractNegotiationParty {
 		
 		//if we are before the turning point (use alpha and beta to tweak performance of ACnext)
 		if(current <= TURNING_POINT) {
-			if (lastReceivedBid != null && ((alpha * getUtility(lastReceivedBid)) + beta) >= INITIAL_UTIL) {
+			if (lastReceivedBid != null && ((ALPHA * getUtility(lastReceivedBid)) + BETA) >= INITIAL_UTIL) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				Bid randomBid = getRandomBid(INITIAL_UTIL);				
 				return new Offer(getPartyId(), randomBid);
 			}
 		} 
+		
 		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
-		else {			
+		else {
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (timeline.getTotalTime() - TURNING_POINT);
 			double concession = (timeline.getCurrentTime() - TURNING_POINT) * helling;
 			
 			double lower = INITIAL_UTIL - concession;
-			double upper = 1.0;
+			double upper = INITIAL_UTIL;
 			
 			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
 			
 			Bid nextBid = null;		
 			//choose randomly between bid strategies
-		    if ((Math.random() * 2) + 1 == 1) {
+		    if (minAndMax == false) {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
+		    	minAndMax = true;
 		    } else {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
+		    	minAndMax = false;
 		    }
 		    
 			//if no bid is formed, do a random bid
@@ -126,7 +133,7 @@ public class Group7 extends AbstractNegotiationParty {
 			}
 			
 			//accept according to acceptance strategy
-			if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
+			if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), nextBid);
