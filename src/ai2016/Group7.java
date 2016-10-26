@@ -211,12 +211,35 @@ public class Group7 extends AbstractNegotiationParty {
 		    }
 		}
 		
-		System.out.println(bidsList.size());
+		/*System.out.println(bidsList.size());
 		System.out.println(bidsList.get(1).toString());
 		System.out.println(bidsList.get(bidsList.size() - 48).toString());
 		System.out.println(bidsList.get(bidsList.size() / 5).toString());
 		System.out.println(bidsList.get(bidsList.size() / 7).toString());
-		System.out.println(bidsList.get(bidsList.size() / 6).toString());
+		System.out.println(bidsList.get(bidsList.size() / 6).toString());*/
+	}
+	
+	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
+		//add value to bid
+		bidValues.put(issueNumber, previousValue);
+		
+		//stop condition
+		if(issueNumber == utilSpace.getDomain().getIssues().size()) {
+			HashMap<Integer, Value> vals = new HashMap<Integer, Value>();
+			vals.putAll(bidValues);
+			bidsList.add(new Bid(utilSpace.getDomain(), vals));
+		} 
+		//recursive step
+		else {
+			Issue issue = utilSpace.getDomain().getIssues().get(issueNumber);
+	        if (issue instanceof IssueDiscrete) {
+	            IssueDiscrete discreteIssue = (IssueDiscrete) issue;
+	            List<ValueDiscrete> values = discreteIssue.getValues();
+	            for(Value value : values) {
+	            	traverseDomain(bidValues, issueNumber + 1, value);
+	            }
+	        }
+		}
 	}
 	
 	/**
@@ -252,28 +275,6 @@ public class Group7 extends AbstractNegotiationParty {
 		}
 	}*/
 	
-	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
-		//add value to bid
-		bidValues.put(issueNumber, previousValue);
-		
-		//stop condition
-		if(issueNumber == utilSpace.getDomain().getIssues().size()) {
-			HashMap<Integer, Value> vals = new HashMap<Integer, Value>();
-			vals.putAll(bidValues);
-			bidsList.add(new Bid(utilSpace.getDomain(), vals));
-		} 
-		//recursive step
-		else {
-			Issue issue = utilSpace.getDomain().getIssues().get(issueNumber);
-	        if (issue instanceof IssueDiscrete) {
-	            IssueDiscrete discreteIssue = (IssueDiscrete) issue;
-	            List<ValueDiscrete> values = discreteIssue.getValues();
-	            for(Value value : values) {
-	            	traverseDomain(bidValues, issueNumber + 1, value);
-	            }
-	        }
-		}
-	}
 
 }
 
