@@ -25,11 +25,11 @@ import negotiator.utility.AbstractUtilitySpace;
 public class Group7 extends AbstractNegotiationParty {
 	//constants
 	private final double INITIAL_UTIL = 1;
-	private final double MINIMUM_UTIL = 0.82;
-	private final double TURNING_POINT = 0.1;
+	private final double MINIMUM_UTIL = 0.85;
+	private final double TURNING_POINT = 0.3;
 	//constants for ACnext-strategy
-	private final double ALPHA = 1.02;
-	private final double BETA = 0.02;
+	private final double ALPHA = 1.05;
+	private final double BETA = 0.05;
 	
 	//variables received in init
 	private AbstractUtilitySpace utilSpace;
@@ -118,14 +118,20 @@ public class Group7 extends AbstractNegotiationParty {
 			
 			Bid nextBid = null;		
 			//choose randomly between bid strategies
+			if ((Math.random() * 2) + 1 == 1) {
+		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
+		    } else {
+		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
+		    }
 			
+			/*
 			if (minAndMax == false) {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
 		    	minAndMax = true;
 		    } else {
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
 		    	minAndMax = false;
-		    }
+		    }*/
 		    
 			//if no bid is formed, do a random bid
 			if(nextBid == null) {
@@ -134,14 +140,11 @@ public class Group7 extends AbstractNegotiationParty {
 
 			//accept according to acceptance strategy
 			if(getUtility(lastReceivedBid) >= lower) {
-				System.out.println("1");
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
-				System.out.println("2");
 				return new Accept(getPartyId(), lastReceivedBid);
-			} else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
-				System.out.println("3");
-				return new Accept(getPartyId(), lastReceivedBid);
+			//} else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
+				//return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), nextBid);
 			}
