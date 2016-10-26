@@ -202,8 +202,7 @@ public class Group7 extends AbstractNegotiationParty {
 	}
 	
 	private void computeAllBids() {
-		computeAllBids2();
-		/*Issue issue = utilSpace.getDomain().getIssues().get(0);
+		Issue issue = utilSpace.getDomain().getIssues().get(0);
 		if (issue instanceof IssueDiscrete) {
 		    IssueDiscrete discreteIssue = (IssueDiscrete) issue;
 		    List<ValueDiscrete> values = discreteIssue.getValues();
@@ -212,13 +211,18 @@ public class Group7 extends AbstractNegotiationParty {
 		    }
 		}
 		
-		System.out.println(bidsList);*/
+		System.out.println(bidsList.size());
+		System.out.println(bidsList.get(1).toString());
+		System.out.println(bidsList.get(bidsList.size() - 48).toString());
+		System.out.println(bidsList.get(bidsList.size() / 5).toString());
+		System.out.println(bidsList.get(bidsList.size() / 7).toString());
+		System.out.println(bidsList.get(bidsList.size() / 6).toString());
 	}
 	
 	/**
 	 * Temporary method. ONLY USABLE ON PARTY DOMAIN.
 	 */
-	private void computeAllBids2() {
+	/*private void computeAllBids2() {
 	    List<ValueDiscrete> avals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(0)).getValues();
 	    List<ValueDiscrete> bvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(1)).getValues();
 	    List<ValueDiscrete> cvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(2)).getValues();
@@ -246,7 +250,7 @@ public class Group7 extends AbstractNegotiationParty {
 				}
 			}
 		}
-	}
+	}*/
 	
 	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
 		//add value to bid
@@ -254,7 +258,9 @@ public class Group7 extends AbstractNegotiationParty {
 		
 		//stop condition
 		if(issueNumber == utilSpace.getDomain().getIssues().size()) {
-			bidsList.add(new Bid(utilSpace.getDomain(), bidValues));
+			HashMap<Integer, Value> vals = new HashMap<Integer, Value>();
+			vals.putAll(bidValues);
+			bidsList.add(new Bid(utilSpace.getDomain(), vals));
 		} 
 		//recursive step
 		else {
