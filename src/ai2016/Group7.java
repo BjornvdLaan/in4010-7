@@ -109,9 +109,10 @@ public class Group7 extends AbstractNegotiationParty {
 		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
 		else {
 			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (1 - TURNING_POINT);
-			double concession = (current - TURNING_POINT)/ (1-TURNING_POINT) * helling;
+			double concession = (current - TURNING_POINT) * helling;
 			
 			double lower = INITIAL_UTIL - concession;
+			System.out.println(lower);
 			double upper = INITIAL_UTIL;
 			
 			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
