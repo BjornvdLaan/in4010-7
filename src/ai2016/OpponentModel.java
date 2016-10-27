@@ -4,107 +4,128 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
-import negotiator.AgentID;
 import negotiator.Bid;
 import negotiator.issue.Issue;
-import negotiator.issue.Objective;
 import negotiator.issue.Value;
 import negotiator.utility.AbstractUtilitySpace;
 
+/**
+ * An opponent model based on the Frequency Analysis Heuristic.
+ */
 public class OpponentModel {
 	private AbstractUtilitySpace utilSpace;
 	private HashMap<Integer, HashMap<Issue, Double>> weights;
 	private HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>> frequencies, utilities;
-	private final double FACTOR = (double) 0.1;
-	
+	private final double factor = (double) 0.1;
+
+	/**
+	 * Constructor of this class.
+	 * @param us 
+	 * 			The utility space to used in this negotiation
+	 */
 	public OpponentModel(AbstractUtilitySpace us) {
-		//store util space
+		//Store the utility space for future reference
 		utilSpace = us;
-		//initialize datastructures
+		
+		//Initialize datastructures of the opponent model
 		weights = new HashMap<Integer, HashMap<Issue, Double>>();
 		frequencies = new HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>>();
 		utilities = new HashMap<Integer, HashMap<Issue, HashMap<Value, Double>>>();
 	}
 	
 	/**
-	 * Updates the opponent model
+	 * Updates the opponent model.
 	 * @param agentHash hash of the agent
 	 * @param newBid the new bid of the agent
 	 * @param previousBid the previous bid of that same agent
 	 */
 	public void update(int agentHash, ArrayList<Bid> agentsBids) {
+		//Get the opponents latest bid
 		Bid newBid = agentsBids.get(agentsBids.size()-1);
 		
+		//Initialize parts of the datastructures if necessary
 		initializeIfNecessary(agentHash, newBid);
 		
 		//For each issue in the new bid		
 		for(Issue i : newBid.getIssues()) {	
+			//STEP 1: UPDATE WEIGHTS
+			//Note: this is only possible if this is not the first bid by this agent
 			if(agentsBids.size() >= 2) {
-				//UPDATE WEIGHTS
+				//Get the previous bid by this agent
 				Bid previousBid = agentsBids.get(agentsBids.size()-2);
-				//If the value for this issue is same as the one in the previous bid
+				//If the value for this issue is same as the one in the previous bid, then increase the weight
 				if(newBid.getValue(i.getNumber()).equals(previousBid.getValue(i.getNumber()))) {
-					//Increase the weight
 					double currentWeight = weights.get(agentHash).get(i);
-					weights.get(agentHash).put(i, currentWeight + FACTOR);
+					weights.get(agentHash).put(i, currentWeight + factor);
 				}
 			}
 			
-			//UPDATE UTILITIES
+			//STEP 2: UPDATE UTILITIES
 			//If value has not been seen before, initialize it
-			//NOTE: this could be moved to initializeIfNecessary if we find a way to get all possible values of an issue.
 			if(!frequencies.get(agentHash).get(i).containsKey(newBid.getValue(i.getNumber()))) {
 				frequencies.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), 0.0);
 			}
-			
 			//Increment frequency for this value of this issue
 			double freq = frequencies.get(agentHash).get(i).get(newBid.getValue(i.getNumber()));
 			frequencies.get(agentHash).get(i).put(newBid.getValue(i.getNumber()), freq + 1.0);
 		}
 		
-		normalizeAgentData(agentHash);
-		
-		//System.out.println(weights.toString());
-		//System.out.println(frequencies.toString());
-		//System.out.println(utilities.toString());
-		
+		//After the update, normalize all data
+		normalizeAgentData(agentHash);		
 	}
 	
 	/**
 	 * Normalizes model for this agent.
 	 * @param agentHash
+	 * 				Unique identifier for this agent
 	 */
 	private void normalizeAgentData(int agentHash) {
 		normalizeWeightsOfAgent(agentHash);
 		normalizeUtilitiesOfAgent(agentHash);
 	}
-	
+
+	/**
+	 * Normalizes the weights for this agent.
+	 * @param agentHash
+	 * 				Unique identifier for this agent
+	 */
 	private void normalizeWeightsOfAgent(int agentHash) {
+		//Get the weights of this agent
 		HashMap<Issue, Double> agentWeights = weights.get(agentHash);
 		
+		//Compute the sum of all weights
 		double sum = (double) 0.0;
 		for(Issue i : agentWeights.keySet()) {
 			sum += agentWeights.get(i);
 		}
 		
+		//Divide all weights by the sum to normalize
 		for(Issue i : agentWeights.keySet()) {
 			double oldWeight = weights.get(agentHash).get(i);
 			weights.get(agentHash).put(i, oldWeight / sum);
 		}
 	}
-	
+
+	/**
+	 * Normalizes the utility values for this agent.
+	 * @param agentHash
+	 * 				Unique identifier for this agent
+	 */
 	private void normalizeUtilitiesOfAgent(int agentHash) {
+		//Get the frequencies of the values of this agent
 		HashMap<Issue, HashMap<Value, Double>> agentUtils = frequencies.get(agentHash);
 		
+		//For each issue
 		for(Issue i : agentUtils.keySet()) {
 			HashMap<Value, Double> issueUtils = agentUtils.get(i);
 			
-			//find the biggest value of this issue
+			//Find the biggest value of this issue
 			double max = (double) Integer.MIN_VALUE;
 			for(double val : issueUtils.values()) {
 				max = Double.max(max, val);
 			}
 			
+			//Normalize all values by dividing them by the maximum
 			for(Value option : issueUtils.keySet()) {
 				double oldUtil = agentUtils.get(i).get(option);
 				utilities.get(agentHash).get(i).put(option, oldUtil / max);
@@ -113,8 +134,9 @@ public class OpponentModel {
 	}
 	
 	/**
-	 * Adds a new agent to the opponent modelling.
+	 * Initializes parts of the datastructure if necessary.
 	 * @param agentHash
+	 * 				Unique identifier for this agent
 	 * @param newBid
 	 */
 	private void initializeIfNecessary(int agentHash, Bid newBid) {
@@ -141,10 +163,11 @@ public class OpponentModel {
 	}
 	
 	/**
-	 * Returns an estimate of the opponents utility of a bid.
+	 * Computes an estimate of the opponents utility of a bid.
 	 * @param agentHash
+	 * 				Unique identifier for this agent
 	 * @param bid
-	 * @return
+	 * @return an estimate of the opponents utility of a bid.
 	 */
 	public double getOpponentUtility(int agentHash, Bid bid) {
 		//if the agent is not modelled yet
@@ -174,53 +197,21 @@ public class OpponentModel {
 	}
 	
 	/**
-	 * Returns the agents most bidded Value for this Issue.
-	 * @param agentHash
-	 * @param i
+	 * Returns the identifiers of all agents in the model.
 	 * @return
 	 */
-	public Value getOpponentsFavoriteOfIssue(int agentHash, Issue i) {
-		if(frequencies.get(agentHash) != null) {
-			HashMap<Value, Double> values = frequencies.get(agentHash).get(i);
-			Value favoriteValue = null;
-			
-			//get the value with the highest frequency
-			double favoriteFreq = Double.MIN_VALUE;
-			for(Value v : values.keySet()) {
-				if(values.get(v) > favoriteFreq) {
-					favoriteValue = v;
-					favoriteFreq = values.get(v);
-				}
-			}
-			
-			return favoriteValue;
-		} else {
-			return null;
-		}
-	}	
-	
-	/**
-	 * Computes the bid that this agent will like most.
-	 * @param agentHash
-	 * @return
-	 */
-	public Bid getOpponentsBestBid(int agentHash) {
-		HashMap<Integer, Value> bidValues = new HashMap<Integer, Value>();
-		for(Issue i : utilSpace.getDomain().getIssues()) {
-			Value val = getOpponentsFavoriteOfIssue(agentHash, i);
-			if(val == null) {
-				return null;
-			} else {
-				bidValues.put(i.getNumber(), val);
-			}			
-		}
-		return new Bid(utilSpace.getDomain(), bidValues);
-	}
-	
 	public Set<Integer> getAgentHashes() {
 		return weights.keySet();
 	}
-	
+
+	/**
+	 * Select a nice bid based on the feasible bids and according to a given bid strategy.
+	 * @param feasibleBids
+	 * 				The list of feasible bids
+	 * @param strategy
+	 * 				The strategy to apply
+	 * @return the selected bid
+	 */
 	public Bid formNiceBid(ArrayList<Bid> feasibleBids, BidStrategy strategy) {
 		
 		double maxSumBidUtility = 0;
@@ -228,11 +219,13 @@ public class OpponentModel {
 		double maxMinBidUtility = 1;
 		Bid maxMinBid = null;
 		
+		//Investigate all bids
 		for(Bid b : feasibleBids) {
 			
 			double maxMin = 1;
 			double sum = 0;
 			
+			//Compute utility value of this bid for each agent
 			for(int hash : weights.keySet()) {
 				//we have to calculate the utility of every opponent 
 				double opponentUtility = getOpponentUtility(hash, b);
@@ -256,6 +249,7 @@ public class OpponentModel {
 			}
 		}
 		
+		//Return the bid according to the strategy
 		if(strategy == BidStrategy.SUM) {
 			return maxSumBid;
 		}

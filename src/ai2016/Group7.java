@@ -20,16 +20,18 @@ import negotiator.session.TimeLineInfo;
 import negotiator.utility.AbstractUtilitySpace;
 
 /**
- * This is your negotiation party.
+ * Negotiation agent of group 7.
+ * @author Bjorn van der Laan, Max van Zoest, Rik Oude Grote Bevelsborg, Sebas Joosten
  */
 public class Group7 extends AbstractNegotiationParty {
-	//constants
-	private final double INITIAL_UTIL = 1;
-	private final double MINIMUM_UTIL = 0.82;
-	private final double TURNING_POINT = 0.1;
-	//constants for ACnext-strategy
-	private final double ALPHA = 1.02;
-	private final double BETA = 0.02;
+	//constants for bidding strategy
+	private final double phase_one_util = 1.0;
+	private final double phase_two_minimum_util = 0.82;
+	private final double turning_point = 0.1;
+	
+	//constants for acceptance strategy
+	private final double alpha = 1.02;
+	private final double beta = 0.02;
 	
 	//variables received in init
 	private AbstractUtilitySpace utilSpace;
@@ -38,31 +40,39 @@ public class Group7 extends AbstractNegotiationParty {
 	private long randomSeed;
 	private AgentID agentId;
 	
+	//List of all possible bids
 	private ArrayList<Bid> bidsList = new ArrayList<Bid>();
-	//Information about bids
+	
+	//Information about previous bids
 	private Bid lastReceivedBid = null;
 	private HashMap<Integer, ArrayList<Bid>> bidHistory = new HashMap<>();
-	
-	/** Bid with the highest possible utility. */
-	private Bid maxBid;
 	
 	//Opponent model
 	private OpponentModel opponentModel;
 	
-	//boolean to decide between SUM of MAXMIN bid
-	boolean minAndMax = false;
+	//boolean for phase 2 of the bidding strategy to decide between SUM of MAXMIN bid
+	private boolean minAndMax = false;
 
+	/**
+	 * Initializes the agent.
+	 * @param utilSpace
+	 * @param dl
+	 * @param tl
+	 * @param randomSeed
+	 * @param agentId
+	 */
 	@Override
 	public void init(AbstractUtilitySpace utilSpace, Deadline dl,
 			TimeLineInfo tl, long randomSeed, AgentID agentId) {
 		
+		//Save all parameters for future reference
 		this.utilSpace = utilSpace;
 		this.deadline = dl;
 		this.timeline = tl;
 		this.randomSeed = randomSeed;
 		this.agentId = agentId;		
 		
-		//Compute all own bids
+		//Compute all possible bids
 		computeAllBids();
 		
 		//Initialize Opponent model
@@ -89,58 +99,69 @@ public class Group7 extends AbstractNegotiationParty {
 	public Action chooseAction(List<Class<? extends Action>> validActions) {			
 		//If there is no previous bid, make a random offer
 		if(lastReceivedBid == null) {
-			Bid randomBid = getRandomBid(INITIAL_UTIL);
+			Bid randomBid = getRandomBid(phase_one_util);
 			return new Offer(getPartyId(), randomBid);
 		}
 		
-		//get current time as fraction of total time
+		//compute the current point in time as fraction of the total time
 		double current = timeline.getCurrentTime() / timeline.getTotalTime();
 		
-		//if we are before the turning point (use alpha and beta to tweak performance of ACnext)
-		if(current <= TURNING_POINT) {
-			if (lastReceivedBid != null && ((ALPHA * getUtility(lastReceivedBid)) + BETA) >= INITIAL_UTIL) {
+		//PHASE 1
+		//if we are before the turning point
+		if(current <= turning_point) {
+			//Option 1: Accept the offer according to the ACnext acceptance strategy with alpha and beta
+			if (lastReceivedBid != null && ((alpha * getUtility(lastReceivedBid)) + beta) >= phase_one_util) {
 				return new Accept(getPartyId(), lastReceivedBid);
-			} else {
-				Bid randomBid = getRandomBid(INITIAL_UTIL);				
+			} 
+			//Option 2: Make a random offer which an utility value of at 'phase_one_util'
+			else {
+				Bid randomBid = getRandomBid(phase_one_util);				
 				return new Offer(getPartyId(), randomBid);
 			}
 		} 
-		
-		//if we are after the turning point (use alpha and beta to tweak performance of ACnext)
+		//PHASE 2
+		//if we are after the turning point
 		else {
-			double helling = (INITIAL_UTIL - MINIMUM_UTIL) / (1 - TURNING_POINT);
-			double concession = (current - TURNING_POINT) * helling;
+			//compute the concession the agent will make based on the current point in time
+			double helling = (phase_one_util - phase_two_minimum_util) / (1 - turning_point);
+			double concession = (current - turning_point) * helling;
 			
-			double lower = INITIAL_UTIL - concession;
-			System.out.println(lower);
-			double upper = INITIAL_UTIL;
-			
+			//compute all feasible bids based on the concession
+			double lower = phase_one_util - concession;
+			double upper = phase_one_util;
 			ArrayList<Bid> feasibleBids = getBidsBetween(lower, upper);
 			
+			//select the next bid based on one of two criteria between which the agent alternates
 			Bid nextBid = null;		
-			//choose randomly between bid strategies
-			
 			if (minAndMax == false) {
+				//criteria: select the bid that has the highest minimum utility value of all opponents
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.MIN);
 		    	minAndMax = true;
 		    } else {
+		    	//criteria: select the bid that has the highest sum of utility values for all opponents
 		    	nextBid = opponentModel.formNiceBid(feasibleBids, BidStrategy.SUM);
 		    	minAndMax = false;
 		    }
 		    
 			//if no bid is formed, do a random bid
 			if(nextBid == null) {
-				return new Offer(getPartyId(), getRandomBid(INITIAL_UTIL - concession));
+				return new Offer(getPartyId(), getRandomBid(phase_one_util - concession));
 			}
 
-			//accept according to acceptance strategy
+			//Option 1: Accept if the last bid is higher than the lower bound
 			if(getUtility(lastReceivedBid) >= lower) {
 				return new Accept(getPartyId(), lastReceivedBid);
-			} else if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
+			} 
+			//Option 2: Accept the offer according to the ACnext acceptance strategy with alpha and beta
+			else if(((alpha * getUtility(lastReceivedBid)) + beta) >= getUtility(nextBid)) {
 				return new Accept(getPartyId(), lastReceivedBid);
-			} else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
+			} 
+			//Option 3: Accept if deadline is almost reached and the bid is 'good enough'
+			else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
 				return new Accept(getPartyId(), lastReceivedBid);
-			} else {
+			} 
+			//Option 4: Make the offer computed above
+			else {
 				return new Offer(getPartyId(), nextBid);
 			}
 		}
@@ -160,11 +181,11 @@ public class Group7 extends AbstractNegotiationParty {
 	public void receiveMessage(AgentID sender, Action action) {
 		super.receiveMessage(sender, action);
 		if (action instanceof Offer) {
-			//save the received bid
+			//Save as the last received bid
 			Bid receivedBid = ((Offer) action).getBid();
 			lastReceivedBid = receivedBid;
 			
-			//Save bid in list of all bids
+			//Save bid in list of all bids for future reference
 			if(!bidHistory.containsKey(sender.hashCode())) {
 				bidHistory.put(sender.hashCode(), new ArrayList<Bid>());
 			}
@@ -180,13 +201,18 @@ public class Group7 extends AbstractNegotiationParty {
 	public String getDescription() {
 		return "Group 7";
 	}
-	
+
+	/**
+	 * Generates a random bid with an utility value between parameter target and 1.0.
+	 * @param target 
+	 * 			the lower bound of the utility range
+	 * @return The chosen bid
+	 */
 	private Bid getRandomBid(double target) {
-		//get all possible bids
+		//get all possible bids in this range
 		ArrayList<Bid> candidates = getBidsBetween(target, 1.0);
 		
-		
-		//if no candidates, do max utility bid
+		//If no bids are found, choose the maximum bid
 		if(candidates.size() == 0) {
 			try {
 				return utilSpace.getMaxUtilityBid();
@@ -195,42 +221,56 @@ public class Group7 extends AbstractNegotiationParty {
 			}
 		}
 		
-		//draw a random number
+		//If bids are found, choose one randomly
 		Random rand = new Random();
 	    int random = rand.nextInt(candidates.size());
-	    
 	    return candidates.get(random);
 	}
-	
+
+	/**
+	 * Gets all bids with a utlity value between the lower and upper bound.
+	 * @param lower
+	 * 			lower bound of the range
+	 * @param upper
+	 * 			upper bound of the range
+	 * @return the list of bids in this range
+	 */
 	private ArrayList<Bid> getBidsBetween(double lower, double upper) {
 		ArrayList<Bid> result = new ArrayList<Bid>();
 		
+		//Select all bids with an utility value between lower and upper
 		for(Bid b : bidsList) {
 			if(lower <= getUtility(b) && getUtility(b) <= upper) {
 				result.add(b);
 			}
 		}
+		
+		//Return the resulting list
 		return result;
 	}
-	
+
+	/**
+	 * Computes all possible bids and saves them in a list for future reference.
+	 */
 	private void computeAllBids() {
 		Issue issue = utilSpace.getDomain().getIssues().get(0);
 		if (issue instanceof IssueDiscrete) {
 		    IssueDiscrete discreteIssue = (IssueDiscrete) issue;
 		    List<ValueDiscrete> values = discreteIssue.getValues();
+		    
+		    //For each of the values of the first issue, start a depth first search
 		    for(Value value : values) {
 		    	traverseDomain(new HashMap<Integer, Value>(), 1, value);
 		    }
 		}
-		
-		/*System.out.println(bidsList.size());
-		System.out.println(bidsList.get(1).toString());
-		System.out.println(bidsList.get(bidsList.size() - 48).toString());
-		System.out.println(bidsList.get(bidsList.size() / 5).toString());
-		System.out.println(bidsList.get(bidsList.size() / 7).toString());
-		System.out.println(bidsList.get(bidsList.size() / 6).toString());*/
 	}
-	
+
+	/**
+	 * Traverses the domain and computes all possible bids recursively.
+	 * @param bidValues
+	 * @param issueNumber
+	 * @param previousValue
+	 */
 	private void traverseDomain(HashMap<Integer, Value> bidValues, int issueNumber, Value previousValue) {
 		//add value to bid
 		bidValues.put(issueNumber, previousValue);
@@ -253,42 +293,5 @@ public class Group7 extends AbstractNegotiationParty {
 	        }
 		}
 	}
-	
-	/**
-	 * Temporary method. ONLY USABLE ON PARTY DOMAIN.
-	 */
-	/*private void computeAllBids2() {
-	    List<ValueDiscrete> avals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(0)).getValues();
-	    List<ValueDiscrete> bvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(1)).getValues();
-	    List<ValueDiscrete> cvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(2)).getValues();
-	    List<ValueDiscrete> dvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(3)).getValues();
-	    List<ValueDiscrete> evals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(4)).getValues();
-	    List<ValueDiscrete> fvals = ((IssueDiscrete) utilSpace.getDomain().getIssues().get(5)).getValues();
-	    
-		for(Value a : avals) {
-			for(Value b : bvals) {
-				for(Value c : cvals) {
-					for(Value d : dvals) {
-						for(Value e : evals) {
-							for(Value f : fvals) {
-								HashMap<Integer, Value> values = new HashMap<Integer, Value>();
-								values.put(1, a);
-								values.put(2, b);
-								values.put(3, c);
-								values.put(4, d);
-								values.put(5, e);
-								values.put(6, f);
-								bidsList.add(new Bid(utilSpace.getDomain(), values));
-							}
-						}
-					}
-				}
-			}
-		}
-	}*/
-	
-
 }
-
-
 
