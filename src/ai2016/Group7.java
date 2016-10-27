@@ -134,13 +134,10 @@ public class Group7 extends AbstractNegotiationParty {
 
 			//accept according to acceptance strategy
 			if(getUtility(lastReceivedBid) >= lower) {
-				System.out.println("1");
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else if(((ALPHA * getUtility(lastReceivedBid)) + BETA) >= getUtility(nextBid)) {
-				System.out.println("2");
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else if(current >= 0.99 && getUtility(lastReceivedBid) >= 0.7) {
-				System.out.println("3");
 				return new Accept(getPartyId(), lastReceivedBid);
 			} else {
 				return new Offer(getPartyId(), nextBid);
